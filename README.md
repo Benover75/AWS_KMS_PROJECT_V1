@@ -1,6 +1,6 @@
 # 🔐 AWS KMS Platform - Enterprise Key Management Solution
 
-# AWS_KMS_PROJECT_V1
+# AWS KMS Project V1
 
 ![License](https://img.shields.io/github/license/Benover75/AWS_KMS_PROJECT_V1)
 ![Dockerized](https://img.shields.io/badge/containerized-Docker-blue?logo=docker)
@@ -9,8 +9,8 @@
 ![Pre-Commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)
 ![Open Source](https://img.shields.io/badge/open--source-yes-brightgreen)
 
+> Secure AWS KMS management with infrastructure as code, containerized deployment, and developer-friendly automation.
 
-> **Enterprise-grade AWS Key Management Service (KMS) platform with AI-powered insights, real-time monitoring, and comprehensive security features.**
 
 ## 🌟 Features
 
