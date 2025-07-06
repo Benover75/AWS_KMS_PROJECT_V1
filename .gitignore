@@ -1,0 +1,52 @@
+# 🔐 Secrets and local DBs
+.env
+users.db
+
+# 🐍 Python artifacts
+*.pyc
+__pycache__/
+.venv/
+*.pyo
+*.pyd
+
+# 🧪 Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 🐘 PostgreSQL or SQLite (if used)
+*.sqlite3
+*.db
+
+# 🐳 Docker
+*.log
+docker-compose.override.yml
+
+# ☁️ Terraform state and backups
+.terraform/
+terraform.tfstate*
+*.tfstate.*
+crash.log
+*.tfvars
+override.tf
+override.tf.json
+
+# AWS logs (e.g. from CloudTrail or Lambda)
+cloudtrail-logs/
+*.awslog
+*.log
+
+# 📦 Packaging
+build/
+dist/
+*.egg-info/
+
+# VSCode/editor junk
+.vscode/
+*.swp
+*.swo
+
+# MacOS/Windows
+.DS_Store
+Thumbs.db
+

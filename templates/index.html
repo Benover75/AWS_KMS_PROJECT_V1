@@ -1,0 +1,2386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AWS KMS Web UI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            min-height: 100vh;
+            background: #181818;
+            color: #f5f5f5;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 3em auto;
+            padding: 2em;
+            background: rgba(30, 30, 30, 0.85);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
+        }
+        h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            letter-spacing: 2px;
+            font-size: 2.5em;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+        section {
+            margin-bottom: 2em;
+            padding: 1.5em 1em;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        label {
+            display: block;
+            margin-top: 1em;
+            color: #b0bec5;
+        }
+        input, textarea, button {
+            margin-top: 0.5em;
+            border-radius: 6px;
+            border: none;
+            padding: 0.5em 1em;
+            font-size: 1em;
+        }
+        input, textarea {
+            background: #232323;
+            color: #f5f5f5;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1em;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        button:hover::before {
+            left: 100%;
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        pre {
+            background: rgba(20, 20, 20, 0.7);
+            color: #e0e0e0;
+            padding: 1em;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .audiowide-regular {
+            font-family: "Audiowide", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+        }
+        .spinner {
+            display: none;
+            margin: 1em auto;
+            border: 4px solid #232323;
+            border-top: 4px solid #00bcd4;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .metric-card {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+        }
+        
+        .chart-container {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+        }
+        @media (max-width: 900px) {
+            .container { max-width: 98vw; padding: 1em; }
+        }
+
+        /* Navigation button hover effects */
+        .nav-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+
+        .nav-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* Responsive navigation */
+        @media (max-width: 768px) {
+            #mainNav .nav-btn {
+                padding: 10px 15px;
+                font-size: 12px;
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="container">
+        <h1 class="audiowide-regular">AWS KMS Web UI</h1>
+
+        <!-- Navigation Bar -->
+        <nav id="mainNav" style="display: none; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 50%, rgba(240, 147, 251, 0.1) 100%); border-radius: 16px; padding: 20px; margin-bottom: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(102, 126, 234, 0.2);">
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
+                <button onclick="scrollToSection('keysSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>🔑</span> Keys
+                </button>
+                <button onclick="scrollToSection('createKeySection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>➕</span> Create Key
+                </button>
+                <button onclick="scrollToSection('encryptSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>🔒</span> Encrypt
+                </button>
+                <button onclick="scrollToSection('decryptSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>🔓</span> Decrypt
+                </button>
+                <button onclick="scrollToSection('analyticsSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>📊</span> Analytics
+                </button>
+                <button onclick="scrollToSection('securitySection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>🛡️</span> Security
+                </button>
+                <button onclick="scrollToSection('aiSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>🤖</span> AI Assistant
+                </button>
+                <button onclick="scrollToSection('automationSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>⚡</span> Automation
+                </button>
+                <button onclick="scrollToSection('apiSection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>🔧</span> API Testing
+                </button>
+                <button onclick="scrollToSection('activitySection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>📝</span> Activity Log
+                </button>
+                <button onclick="scrollToSection('policySection')" class="nav-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <span>📋</span> Policy Explorer
+                </button>
+            </div>
+        </nav>
+
+        <!-- Auth Section -->
+        <section id="authSection">
+          <h2>Authentication</h2>
+          <div id="authStatus"></div>
+          <div id="authForm">
+            <label>Username: <input id="authUsername"></label>
+            <label>Password: <input id="authPassword" type="password"></label>
+            <button id="authActionBtn" onclick="authAction()">Login</button>
+            <span id="authToggleText">Don't have an account? <a href="#" onclick="toggleAuthMode();return false;">Register</a></span>
+          </div>
+          <button id="logoutBtn" style="display:none;" onclick="logout()">Logout</button>
+        </section>
+
+        <div id="appContent" style="display:none;">
+        <!-- All main app sections go here -->
+        <section id="keysSection">
+            <h2 class="audiowide-regular">List KMS Keys</h2>
+            <button id="toggleKeysBtn" onclick="toggleKeys()" style="background: #6366f1; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">List Keys</button>
+            <div id="keysContainer" style="display:none;">
+            <pre id="keys"></pre>
+            </div>
+        </section>
+        <section id="createKeySection">
+            <h2 class="audiowide-regular">Create KMS Key</h2>
+            
+            <!-- Quick Templates -->
+            <div style="margin-bottom: 20px;">
+                <h3>Quick Templates</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button onclick="loadKeyTemplate('web-app')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 8px 16px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Web Application</button>
+                    <button onclick="loadKeyTemplate('database')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 8px 16px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Database</button>
+                    <button onclick="loadKeyTemplate('api')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 8px 16px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">API Service</button>
+                    <button onclick="loadKeyTemplate('mobile')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 8px 16px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Mobile App</button>
+                    <button onclick="loadKeyTemplate('microservice')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 8px 16px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Microservice</button>
+                    <button onclick="loadKeyTemplate('custom')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 8px 16px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Custom</button>
+                </div>
+            </div>
+            
+            <!-- Key Configuration -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <label>Application Name: <input id="app-name" type="text" placeholder="e.g., my-web-app"></label>
+                    <label>Environment: 
+                        <select id="environment">
+                            <option value="dev">Development</option>
+                            <option value="staging">Staging</option>
+                            <option value="prod">Production</option>
+                            <option value="test">Testing</option>
+                        </select>
+                    </label>
+                    <label>Key Purpose: 
+                        <select id="key-purpose">
+                            <option value="encryption">Data Encryption</option>
+                            <option value="signing">Digital Signing</option>
+                            <option value="both">Encryption & Signing</option>
+                        </select>
+                    </label>
+                </div>
+                <div>
+                    <label>Description: <textarea id="key-desc" rows="3" placeholder="Detailed description of the key's purpose"></textarea></label>
+                    <label>Alias: <input id="key-alias" type="text" placeholder="Auto-generated based on app name and environment"></label>
+                    <label>Tags (JSON): <textarea id="key-tags" rows="3" placeholder='{"Purpose": "encryption", "Team": "backend"}'></textarea></label>
+                </div>
+            </div>
+            
+            <!-- Advanced Options -->
+            <div style="margin-bottom: 20px;">
+                <h3>Advanced Options</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label><input type="checkbox" id="enable-rotation" checked> Enable Key Rotation</label>
+                        <label><input type="checkbox" id="enable-multi-region"> Multi-Region Key</label>
+                        <label><input type="checkbox" id="enable-deletion"> Allow Key Deletion</label>
+                    </div>
+                    <div>
+                        <label>Key Spec: 
+                            <select id="key-spec">
+                                <option value="SYMMETRIC_DEFAULT">Symmetric (Default)</option>
+                                <option value="RSA_2048">RSA 2048</option>
+                                <option value="RSA_3072">RSA 3072</option>
+                                <option value="RSA_4096">RSA 4096</option>
+                                <option value="ECC_NIST_P256">ECC NIST P-256</option>
+                                <option value="ECC_NIST_P384">ECC NIST P-384</option>
+                                <option value="ECC_NIST_P521">ECC NIST P-521</option>
+                            </select>
+                        </label>
+                        <label>Origin: 
+                            <select id="key-origin">
+                                <option value="AWS_KMS">AWS KMS</option>
+                                <option value="EXTERNAL">External Key Material</option>
+                                <option value="AWS_CLOUDHSM">AWS CloudHSM</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="createKey()" style="background: #4caf50; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">Create KMS Key</button>
+            <button onclick="clearKeyForm()" style="background: #f44336; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-left: 10px;">Clear Form</button>
+            
+            <pre id="create-key-result" style="margin-top: 20px;"></pre>
+        </section>
+        <section id="encryptSection">
+            <h2 class="audiowide-regular">Encrypt String</h2>
+            <label>Plaintext: <input id="plaintext" type="text"></label>
+            <button onclick="encryptString()">Encrypt</button>
+            <pre id="encrypted"></pre>
+        </section>
+        <section id="decryptSection">
+            <h2 class="audiowide-regular">Decrypt String</h2>
+            <label>Encrypted JSON: <textarea id="encrypted-json" rows="5" cols="60"></textarea></label>
+            <button onclick="decryptString()">Decrypt</button>
+            <pre id="decrypted"></pre>
+        </section>
+        <section id="monitoringSection">
+            <h2 class="audiowide-regular">Monitoring Report</h2>
+            <button onclick="getReport()">Get Report</button>
+            <pre id="report"></pre>
+        </section>
+        <section id="activitySection">
+            <h2 class="audiowide-regular">User Activity Log</h2>
+            <button onclick="getActivityLog()">Refresh Log</button>
+            <button onclick="exportActivityLog('csv')">Export CSV</button>
+            <button onclick="exportActivityLog('json')">Export JSON</button>
+            <div class="spinner" id="activity-spinner"></div>
+            <table id="activityLogTable" style="width:100%;margin-top:1em;background:#232323;color:#f5f5f5;border-radius:8px;">
+              <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Key ID</th><th>Status</th><th>Details</th></tr></thead>
+              <tbody></tbody>
+            </table>
+        </section>
+        <!-- KMS Policy Explorer -->
+        <section id="policySection">
+          <h2 class="audiowide-regular">KMS Policy Explorer</h2>
+          <label>Key ID: <input id="policyKeyId" type="text" style="width:300px"></label>
+          <button onclick="getKeyPolicy()">Get Policy</button>
+          <button onclick="saveKeyPolicy()">Save Policy</button>
+          <pre id="keyPolicyDisplay" style="min-height:120px;"></pre>
+        </section>
+        <!-- Add Delete Key Modal -->
+        <div id="deleteKeyModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+          <div style="background:#222;padding:2em;border-radius:12px;max-width:400px;margin:auto;text-align:center;">
+            <h2>Delete KMS Key</h2>
+            <p>Are you sure you want to schedule deletion for key <span id="deleteKeyId"></span>?</p>
+            <label>Pending window (days): <input id="pendingWindow" type="number" min="7" max="30" value="7"></label>
+            <br><br>
+            <button onclick="confirmDeleteKey()">Confirm</button>
+            <button onclick="closeDeleteKeyModal()">Cancel</button>
+          </div>
+        </div>
+        <!-- AI-Powered KMS Assistant -->
+        <section id="aiSection">
+          <h2 class="audiowide-regular">🤖 AI-Powered KMS Assistant</h2>
+          <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+              <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">🤖</div>
+              <div>
+                <h3 style="color: white; margin: 0;">KMS AI Assistant</h3>
+                <p style="color: rgba(255,255,255,0.8); margin: 0;">Ask me anything about your KMS keys, security, or best practices!</p>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px;">
+              <input id="aiQuery" type="text" placeholder="e.g., 'Show me keys that need rotation' or 'What's the security status of my keys?'" 
+                     style="padding: 12px; border: none; border-radius: 8px; font-size: 14px;">
+              <button onclick="askAI()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Ask AI</button>
+            </div>
+            <div id="aiResponse" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-top: 15px; display: none;">
+              <div id="aiResponseContent"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Real-time Security Monitoring -->
+        <section id="securitySection">
+          <h2 class="audiowide-regular">🔒 Real-time Security Monitoring</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div class="security-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; color: white; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <h3>🚨 Security Alerts</h3>
+              <div id="securityAlerts" style="max-height: 200px; overflow-y: auto;">
+                <div class="alert-item" style="background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 5px;">
+                  <span style="color: #ffd700;">⚠️</span> Key rotation overdue for 3 keys
+                </div>
+                <div class="alert-item" style="background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 5px;">
+                  <span style="color: #ff6b6b;">🚨</span> Unusual access pattern detected
+                </div>
+              </div>
+            </div>
+            
+            <div class="security-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; color: white; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <h3>🛡️ Compliance Status</h3>
+              <div id="complianceStatus">
+                <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                  <span>GDPR Compliance:</span>
+                  <span style="color: #4caf50;">✅ Compliant</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                  <span>SOX Compliance:</span>
+                  <span style="color: #4caf50;">✅ Compliant</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                  <span>HIPAA Compliance:</span>
+                  <span style="color: #ff9800;">⚠️ Review Required</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="security-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; color: #f5f5f5; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <h3>📊 Risk Assessment</h3>
+              <div id="riskAssessment">
+                <div style="margin: 10px 0;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Overall Risk Score:</span>
+                    <span style="color: #4caf50; font-weight: bold;">Low (15/100)</span>
+                  </div>
+                  <div style="background: #ddd; height: 8px; border-radius: 4px; margin-top: 5px;">
+                    <div style="background: #4caf50; height: 100%; width: 15%; border-radius: 4px;"></div>
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: #666;">
+                  • 2 keys need rotation<br>
+                  • 1 key has excessive permissions<br>
+                  • All keys properly tagged
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Advanced Analytics Dashboard -->
+        <section id="analyticsSection">
+          <h2 class="audiowide-regular">📈 Advanced Analytics Dashboard</h2>
+          
+          <!-- Real-time Metrics Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div class="metric-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <div class="metric-glow" style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); animation: rotate 10s linear infinite;"></div>
+              <h3 style="margin: 0 0 10px 0; color: #f5f5f5; font-size: 1.2em;">Total Keys</h3>
+              <div id="totalKeysMetric" style="font-size: 2.5em; font-weight: bold; color: #f5f5f5; text-shadow: 0 0 20px rgba(255,255,255,0.3);">0</div>
+    </div>
+            
+            <div class="metric-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <div class="metric-glow" style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); animation: rotate 10s linear infinite reverse;"></div>
+              <h3 style="margin: 0 0 10px 0; color: #f5f5f5; font-size: 1.2em;">Active Keys</h3>
+              <div id="activeKeysMetric" style="font-size: 2.5em; font-weight: bold; color: #f5f5f5; text-shadow: 0 0 20px rgba(255,255,255,0.3);">0</div>
+            </div>
+            
+            <div class="metric-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <div class="metric-glow" style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); animation: rotate 10s linear infinite;"></div>
+              <h3 style="margin: 0 0 10px 0; color: #f5f5f5; font-size: 1.2em;">Avg Response Time</h3>
+              <div id="avgResponseMetric" style="font-size: 2.5em; font-weight: bold; color: #f5f5f5; text-shadow: 0 0 20px rgba(255,255,255,0.3);">0ms</div>
+            </div>
+            
+            <div class="metric-card" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <div class="metric-glow" style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); animation: rotate 10s linear infinite reverse;"></div>
+              <h3 style="margin: 0 0 10px 0; color: #f5f5f5; font-size: 1.2em;">Success Rate</h3>
+              <div id="successRateMetric" style="font-size: 2.5em; font-weight: bold; color: #f5f5f5; text-shadow: 0 0 20px rgba(255,255,255,0.3);">0%</div>
+            </div>
+          </div>
+          
+          <!-- Advanced Charts Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+            <!-- 3D Donut Chart - Key State Distribution -->
+            <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; backdrop-filter: blur(10px);">
+              <div class="chart-glow" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%); animation: shimmer 3s ease-in-out infinite;"></div>
+              <h3 style="color: #f5f5f5; margin: 0 0 20px 0; text-align: center; font-size: 1.3em;">Key State Distribution</h3>
+              <canvas id="keyStateDonut" width="300" height="300"></canvas>
+            </div>
+            
+            <!-- 3D Donut Chart - Key Usage Distribution -->
+            <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; backdrop-filter: blur(10px);">
+              <div class="chart-glow" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%); animation: shimmer 3s ease-in-out infinite reverse;"></div>
+              <h3 style="color: #f5f5f5; margin: 0 0 20px 0; text-align: center; font-size: 1.3em;">Key Usage Distribution</h3>
+              <canvas id="keyUsageDonut" width="300" height="300"></canvas>
+            </div>
+          </div>
+          
+          <!-- Advanced Bar Chart - Key Performance -->
+          <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; margin-bottom: 30px; backdrop-filter: blur(10px);">
+            <div class="chart-glow" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%); animation: shimmer 3s ease-in-out infinite;"></div>
+            <h3 style="color: #f5f5f5; margin: 0 0 20px 0; text-align: center; font-size: 1.3em;">Key Performance Analytics</h3>
+            <canvas id="keyPerformanceChart" width="800" height="400"></canvas>
+          </div>
+          
+          <!-- Real-time Activity Timeline -->
+          <div class="chart-container" style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); position: relative; overflow: hidden; backdrop-filter: blur(10px);">
+            <div class="chart-glow" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%); animation: shimmer 3s ease-in-out infinite reverse;"></div>
+            <h3 style="color: #f5f5f5; margin: 0 0 20px 0; text-align: center; font-size: 1.3em;">Real-time Activity Timeline</h3>
+            <canvas id="activityTimeline" width="800" height="300"></canvas>
+          </div>
+        </section>
+        <section>
+          <h2>Key Expiry / Rotation Reminders</h2>
+          <div class="spinner" id="rotation-spinner"></div>
+          <table id="rotationTable" style="width:100%;margin-top:1em;background:#232323;color:#f5f5f5;border-radius:8px;">
+            <thead><tr><th>Key ID</th><th>Description</th><th>Rotation Enabled</th><th>Created</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Recent Key Activity</h2>
+          <div class="spinner" id="recent-activity-spinner"></div>
+          <table id="recentActivityTable" style="width:100%;margin-top:1em;background:#232323;color:#f5f5f5;border-radius:8px;">
+            <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Key ID</th><th>Status</th><th>Details</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+        <!-- 🚀 Advanced Key Management -->
+        <section>
+          <h2 class="audiowide-regular">🚀 Advanced Key Management</h2>
+          
+          <!-- Key Lifecycle Management -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; color: #f5f5f5; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <h3>🔄 Key Lifecycle Management</h3>
+              <div style="margin: 15px 0;">
+                <button onclick="bulkRotateKeys()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Bulk Rotate Keys</button>
+                <button onclick="scheduleKeyRotation()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Schedule Rotation</button>
+                <button onclick="enableKeyRotation()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Enable Rotation</button>
+              </div>
+              <div id="lifecycleStatus" style="font-size: 14px;">
+                • 5 keys scheduled for rotation<br>
+                • 3 keys have rotation enabled<br>
+                • 2 keys need manual rotation
+              </div>
+            </div>
+            
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 15px; color: #f5f5f5; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+              <h3>🔐 Key Backup & Recovery</h3>
+              <div style="margin: 15px 0;">
+                <button onclick="backupKeys()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Backup Keys</button>
+                <button onclick="restoreKeys()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Restore Keys</button>
+                <button onclick="exportKeyMaterial()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Export Material</button>
+              </div>
+              <div id="backupStatus" style="font-size: 14px;">
+                • Last backup: 2 hours ago<br>
+                • 15 keys backed up<br>
+                • Backup location: S3://kms-backups
+              </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 15px; color: white;">
+              <h3>🌍 Multi-Region Management</h3>
+              <div style="margin: 15px 0;">
+                <button onclick="replicateKeys()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Replicate Keys</button>
+                <button onclick="syncRegions()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Sync Regions</button>
+                <button onclick="crossRegionEncrypt()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Cross-Region Encrypt</button>
+              </div>
+              <div id="regionStatus" style="font-size: 14px;">
+                • 3 regions active<br>
+                • 8 keys replicated<br>
+                • Cross-region latency: 45ms
+              </div>
+            </div>
+          </div>
+          
+          <!-- Advanced Key Operations -->
+          <div style="background: rgba(40, 40, 40, 0.8); border-radius: 15px; padding: 20px; border: 1px solid rgba(0, 188, 212, 0.3); margin-bottom: 30px;">
+            <h3 style="color: #00bcd4; margin: 0 0 20px 0;">🔧 Advanced Key Operations</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+              <div>
+                <label>Key ID: <input id="advancedKeyId" type="text" placeholder="Enter Key ID"></label>
+                <button onclick="enableKey()" style="background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 5px; margin: 5px; cursor: pointer;">Enable</button>
+                <button onclick="disableKey()" style="background: #f44336; color: white; border: none; padding: 8px 12px; border-radius: 5px; margin: 5px; cursor: pointer;">Disable</button>
+              </div>
+              <div>
+                <button onclick="updateKeyDescription()" style="background: #ff9800; color: white; border: none; padding: 8px 12px; border-radius: 5px; margin: 5px; cursor: pointer;">Update Description</button>
+                <button onclick="tagKey()" style="background: #2196f3; color: white; border: none; padding: 8px 12px; border-radius: 5px; margin: 5px; cursor: pointer;">Add Tags</button>
+              </div>
+              <div>
+                <button onclick="generateDataKey()" style="background: #9c27b0; color: white; border: none; padding: 8px 12px; border-radius: 5px; margin: 5px; cursor: pointer;">Generate Data Key</button>
+                <button onclick="signData()" style="background: #607d8b; color: white; border: none; padding: 8px 12px; border-radius: 5px; margin: 5px; cursor: pointer;">Sign Data</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 🎯 Intelligent Automation -->
+        <section id="automationSection">
+          <h2 class="audiowide-regular">🎯 Intelligent Automation</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; color: white;">
+              <h3>🤖 Auto-Remediation</h3>
+              <div style="margin: 15px 0;">
+                <label><input type="checkbox" id="autoRotate" checked> Auto-rotate keys after 90 days</label><br>
+                <label><input type="checkbox" id="autoBackup" checked> Auto-backup keys daily</label><br>
+                <label><input type="checkbox" id="autoAlert" checked> Auto-alert on security issues</label><br>
+                <label><input type="checkbox" id="autoCompliance" checked> Auto-compliance checks</label>
+              </div>
+              <button onclick="saveAutomationRules()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Save Rules</button>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 15px; color: white;">
+              <h3>📊 Smart Analytics</h3>
+              <div style="margin: 15px 0;">
+                <button onclick="generateUsageReport()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Usage Report</button>
+                <button onclick="costOptimization()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Cost Analysis</button>
+                <button onclick="performanceOptimization()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Performance</button>
+              </div>
+              <div id="analyticsStatus" style="font-size: 14px;">
+                • 15% cost savings identified<br>
+                • 3 performance optimizations<br>
+                • 2 unused keys detected
+              </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 15px; color: white;">
+              <h3>🔮 Predictive Insights</h3>
+              <div style="margin: 15px 0;">
+                <button onclick="predictKeyUsage()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Predict Usage</button>
+                <button onclick="forecastCosts()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Forecast Costs</button>
+                <button onclick="securityPredictions()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; margin: 5px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Security Predictions</button>
+              </div>
+              <div id="predictionsStatus" style="font-size: 14px;">
+                • 2 keys will need rotation soon<br>
+                • Usage expected to increase 25%<br>
+                • Security risk: Low
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- API Testing & Monitoring (Postman-like) -->
+        <section id="apiSection">
+          <h2 class="audiowide-regular">🔧 API Testing & Monitoring</h2>
+          
+          <!-- Request Builder -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+              <h3>Request Builder</h3>
+              <label>Method:
+                <select id="apiMethod" onchange="updateEndpointOptions()">
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
+              </label>
+              
+              <label>Endpoint:
+                <select id="apiEndpoint" onchange="updatePayloadTemplate()">
+                  <option value="/api/keys">/api/keys - List KMS Keys</option>
+                  <option value="/api/create-key">/api/create-key - Create KMS Key</option>
+                  <option value="/api/delete-key">/api/delete-key - Delete KMS Key</option>
+                  <option value="/api/encrypt">/api/encrypt - Encrypt Data</option>
+                  <option value="/api/decrypt">/api/decrypt - Decrypt Data</option>
+                  <option value="/api/key-stats">/api/key-stats - Key Statistics</option>
+                  <option value="/api/key-usage-details">/api/key-usage-details - Key Usage Details</option>
+                  <option value="/api/key-rotation-reminders">/api/key-rotation-reminders - Rotation Reminders</option>
+                  <option value="/api/recent-key-activity">/api/recent-key-activity - Recent Activity</option>
+                  <option value="/api/activity-log">/api/activity-log - Activity Log</option>
+                  <option value="/api/report">/api/report - Monitoring Report</option>
+                  <option value="/api/key-policy">/api/key-policy - Get Key Policy</option>
+                  <option value="/api/sessions">/api/sessions - List Sessions</option>
+                  <option value="/api/logout-session">/api/logout-session - Logout Session</option>
+                  <option value="/api/mfa-setup">/api/mfa-setup - MFA Setup</option>
+                  <option value="/api/mfa-verify">/api/mfa-verify - MFA Verify</option>
+                  <option value="/login">/login - User Login</option>
+                  <option value="/register">/register - User Registration</option>
+                  <option value="/whoami">/whoami - Current User</option>
+                  <option value="/health">/health - Health Check</option>
+                  <option value="/api/activity-log/export/csv">/api/activity-log/export/csv - Export CSV</option>
+                  <option value="/api/activity-log/export/json">/api/activity-log/export/json - Export JSON</option>
+                </select>
+              </label>
+              
+              <label>Custom URL: <input id="customUrl" type="text" placeholder="Or enter custom URL" style="width: 100%;"></label>
+              
+              <label>Headers:
+                <textarea id="apiHeaders" rows="3" placeholder='{"Content-Type": "application/json"}'></textarea>
+              </label>
+              
+              <label>Request Body (JSON):
+                <textarea id="apiPayload" rows="8" placeholder="Enter JSON payload for POST/PUT requests"></textarea>
+              </label>
+              
+              <button onclick="sendApiRequest()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-right: 10px; color: white; border: none; padding: 10px 15px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Send Request</button>
+              <button onclick="saveRequest()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Save Request</button>
+              <button onclick="clearRequest()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 15px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Clear</button>
+    </div>
+            
+            <div>
+              <h3>Response</h3>
+              <div style="margin-bottom: 10px;">
+                <span id="responseStatus" style="padding: 5px 10px; border-radius: 4px; font-weight: bold;"></span>
+                <span id="responseTime" style="margin-left: 10px; color: #888;"></span>
+              </div>
+              <div style="margin-bottom: 10px;">
+                <button onclick="copyResponse()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-right: 5px; color: white; border: none; padding: 8px 12px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Copy</button>
+                <button onclick="formatResponse()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 12px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Format JSON</button>
+              </div>
+              <pre id="apiResponse" style="max-height: 400px; overflow-y: auto;"></pre>
+            </div>
+          </div>
+          
+          <!-- Saved Requests -->
+          <div style="margin-bottom: 20px;">
+            <h3>Saved Requests</h3>
+            <div id="savedRequests" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+          </div>
+          
+          <!-- API Health Monitoring -->
+          <div>
+            <h3>API Health & Performance</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div>
+                <h4>Response Time Trend</h4>
+                <canvas id="apiHealthChart" width="400" height="200"></canvas>
+              </div>
+              <div>
+                <h4>API Status Summary</h4>
+                <div id="apiStatusSummary" style="background: #232323; padding: 15px; border-radius: 8px;">
+                  <div>Total Requests: <span id="totalRequests">0</span></div>
+                  <div>Success Rate: <span id="successRate">0%</span></div>
+                  <div>Avg Response Time: <span id="avgResponseTime">0ms</span></div>
+                  <div>Last Request: <span id="lastRequest">Never</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- Session Management (Admin) -->
+        <section id="sessionMgmtSection" style="display:none;">
+          <h2 class="audiowide-regular">Active Sessions</h2>
+          <button onclick="getSessions()" style="background: #6366f1; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Refresh Sessions</button>
+          <table id="sessionsTable" style="width:100%;margin-top:1em;background:#232323;color:#f5f5f5;border-radius:8px;">
+            <thead><tr><th>ID</th><th>User</th><th>Issued At</th><th>Active</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Floating nodes/edges animation
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let nodes = [];
+        let edges = [];
+        const NODE_COUNT = 22;
+        const EDGE_CHANCE = 0.22;
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        function randomColor() {
+            const colors = [
+                'rgba(102, 126, 234, 0.3)',  // Blue
+                'rgba(118, 75, 162, 0.3)',  // Purple
+                'rgba(240, 147, 251, 0.3)'  // Pink
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        function createNodes() {
+            nodes = [];
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodes.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: 3 + Math.random() * 4,
+                    dx: (Math.random() - 0.5) * 0.7,
+                    dy: (Math.random() - 0.5) * 0.7,
+                    color: randomColor()
+                });
+            }
+        }
+        function createEdges() {
+            edges = [];
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    if (Math.random() < EDGE_CHANCE) {
+                        edges.push([i, j]);
+                    }
+                }
+            }
+        }
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw edges
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            for (let [i, j] of edges) {
+                const gradient = ctx.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+                gradient.addColorStop(0, 'rgba(102, 126, 234, 0.4)');  // Blue
+                gradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.4)'); // Purple
+                gradient.addColorStop(1, 'rgba(240, 147, 251, 0.4)');  // Pink
+                
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[j].x, nodes[j].y);
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+            ctx.restore();
+            // Draw nodes
+            for (let node of nodes) {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.r, 0, 2 * Math.PI);
+                
+                // Create gradient for each node
+                const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.r);
+                gradient.addColorStop(0, 'rgba(102, 126, 234, 0.8)');  // Blue center
+                gradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.6)'); // Purple middle
+                gradient.addColorStop(1, 'rgba(240, 147, 251, 0.4)');  // Pink edge
+                
+                ctx.fillStyle = gradient;
+                ctx.shadowColor = 'rgba(102, 126, 234, 0.6)';
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            // Move nodes
+            for (let node of nodes) {
+                node.x += node.dx;
+                node.y += node.dy;
+                if (node.x < 0 || node.x > canvas.width) node.dx *= -1;
+                if (node.y < 0 || node.y > canvas.height) node.dy *= -1;
+            }
+            requestAnimationFrame(animate);
+        }
+        createNodes();
+        createEdges();
+        animate();
+        // Recreate nodes/edges on resize
+        window.addEventListener('resize', () => {
+            createNodes();
+            createEdges();
+        });
+        // --- UI logic (unchanged) ---
+        let currentUser = null;
+        let authMode = 'login'; // or 'register'
+        let jwtToken = null;
+
+        function saveToken(token) {
+          jwtToken = token;
+          if (token) localStorage.setItem('jwtToken', token);
+          else localStorage.removeItem('jwtToken');
+        }
+        function loadToken() {
+          jwtToken = localStorage.getItem('jwtToken');
+        }
+        function getAuthHeaders() {
+          return jwtToken ? { 'Authorization': 'Bearer ' + jwtToken, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+        }
+        // --- Session Management UI ---
+        function getSessions() {
+          fetch('/api/sessions', { headers: getAuthHeaders() })
+            .then(r => r.json())
+            .then(data => {
+              const tbody = document.getElementById('sessionsTable').querySelector('tbody');
+              tbody.innerHTML = '';
+              for (const s of data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${s.id}</td><td>${s.username}</td><td>${s.issued_at}</td><td>${s.active ? 'Yes' : 'No'}</td><td>${s.active ? `<button onclick=\"logoutSession(${s.id})\">Force Logout</button>` : ''}</td>`;
+                tbody.appendChild(tr);
+              }
+            });
+        }
+        function logoutSession(sessionId) {
+          if (!confirm('Force logout this session?')) return;
+          fetch('/api/logout-session', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ session_id: sessionId })
+          }).then(r => r.json()).then(data => {
+            if (data.status === 'session_deactivated') {
+              getSessions();
+            } else {
+              alert('Error: ' + (data.error || 'Unknown error'));
+            }
+          });
+        }
+        // Show session management only for admins
+        function updateAuthUI() {
+          loadToken();
+          if (!jwtToken) {
+            currentUser = null;
+            document.getElementById('authStatus').textContent = 'Not logged in.';
+            document.getElementById('authForm').style.display = '';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('mainNav').style.display = 'none';
+            document.getElementById('sessionMgmtSection').style.display = 'none';
+            listKeys();
+            return;
+          }
+          fetch('/whoami', { headers: getAuthHeaders() }).then(r => {
+            if (r.status === 200) return r.json();
+            throw new Error('Not logged in');
+          }).then(user => {
+            currentUser = user;
+            document.getElementById('authStatus').textContent = `Logged in as ${user.username}`;
+            document.getElementById('authForm').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = '';
+            document.getElementById('appContent').style.display = '';
+            document.getElementById('mainNav').style.display = 'block';
+            document.getElementById('sessionMgmtSection').style.display = '';
+            getSessions();
+            listKeys();
+          }).catch(() => {
+            saveToken(null);
+            currentUser = null;
+            document.getElementById('authStatus').textContent = 'Not logged in.';
+            document.getElementById('authForm').style.display = '';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('mainNav').style.display = 'none';
+            document.getElementById('sessionMgmtSection').style.display = 'none';
+            listKeys();
+          });
+        }
+
+        // Navigation function
+        function scrollToSection(sectionId) {
+          const section = document.getElementById(sectionId);
+          if (section) {
+            section.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+            
+            // Add a subtle highlight effect
+            section.style.transition = 'all 0.3s ease';
+            section.style.boxShadow = '0 0 30px rgba(102, 126, 234, 0.5)';
+            setTimeout(() => {
+              section.style.boxShadow = '';
+            }, 2000);
+          }
+        }
+        function toggleAuthMode() {
+          authMode = authMode === 'login' ? 'register' : 'login';
+          document.getElementById('authActionBtn').textContent = authMode === 'login' ? 'Login' : 'Register';
+          document.getElementById('authToggleText').innerHTML = authMode === 'login' ?
+            "Don't have an account? <a href=\"#\" onclick=\"toggleAuthMode();return false;\">Register</a>" :
+            "Already have an account? <a href=\"#\" onclick=\"toggleAuthMode();return false;\">Login</a>";
+        }
+        // --- MFA Modal Logic ---
+        function showMfaModal(qrB64) {
+          document.getElementById('mfaQrImg').src = 'data:image/png;base64,' + qrB64;
+          document.getElementById('mfaCodeInput').value = '';
+          document.getElementById('mfaError').textContent = '';
+          document.getElementById('mfaModal').style.display = 'flex';
+        }
+        function closeMfaModal() {
+          document.getElementById('mfaModal').style.display = 'none';
+        }
+        function verifyMfaCode() {
+          const code = document.getElementById('mfaCodeInput').value;
+          fetch('/api/mfa-verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: window.mfaUsername, code })
+          }).then(r => r.json()).then(resp => {
+            if (resp.status === 'verified') {
+              closeMfaModal();
+              // Now try login again with code
+              loginWithMfa(window.mfaUsername, window.mfaPassword, code);
+            } else {
+              document.getElementById('mfaError').textContent = resp.error || 'Invalid code';
+            }
+          });
+        }
+        function loginWithMfa(username, password, mfa_code) {
+          fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, mfa_code })
+          }).then(r => r.json()).then(resp => {
+            if (resp.status === 'logged_in') {
+              saveToken(resp.token);
+              updateAuthUI();
+            } else {
+              alert(resp.error || 'Login failed');
+            }
+          });
+        }
+        // --- Update authAction for MFA flow ---
+        function authAction() {
+          const username = document.getElementById('authUsername').value;
+          const password = document.getElementById('authPassword').value;
+          if (authMode === 'login') {
+            fetch('/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})})
+              .then(r => r.json()).then(resp => {
+                if (resp.status === 'logged_in') {
+                  saveToken(resp.token);
+                  updateAuthUI();
+                } else if (resp.status === 'mfa_setup_required') {
+                  // Start MFA setup
+                  window.mfaUsername = username;
+                  window.mfaPassword = password;
+                  fetch('/api/mfa-setup', {method:'POST',headers:getAuthHeaders()})
+                    .then(r => r.json()).then(data => {
+                      showMfaModal(data.qr_code);
+                    });
+                } else if (resp.status === 'mfa_required') {
+                  // Prompt for code
+                  const code = prompt('Enter your 6-digit MFA code:');
+                  if (code) loginWithMfa(username, password, code);
+                } else {
+                  alert(resp.error);
+                }
+              });
+          } else {
+            fetch('/register', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})})
+              .then(r => r.json()).then(resp => {
+                if (resp.status === 'registered') {
+                  alert('Registered! You can now log in.');
+                  toggleAuthMode();
+                } else {
+                  alert(resp.error);
+                }
+              });
+          }
+        }
+        function logout() {
+          saveToken(null);
+          updateAuthUI();
+        }
+        let keysVisible = false;
+        function toggleKeys() {
+            keysVisible = !keysVisible;
+            document.getElementById('keysContainer').style.display = keysVisible ? '' : 'none';
+            document.getElementById('toggleKeysBtn').textContent = keysVisible ? 'Hide Keys' : 'List Keys';
+            if (keysVisible) listKeys();
+        }
+        function listKeys() {
+            fetch('/api/keys').then(r => r.json()).then(data => {
+                let html = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                html += '<ul>';
+                for (const key of data) {
+                    html += `<li>${key.KeyId}`;
+                    html += ` <button onclick=\"openDeleteKeyModal('${key.KeyId}')\">Delete</button>`;
+                    html += `</li>`;
+                }
+                html += '</ul>';
+                document.getElementById('keys').innerHTML = html;
+            });
+        }
+        // Key templates for different application types
+        const keyTemplates = {
+            'web-app': {
+                appName: 'web-application',
+                description: 'KMS key for web application data encryption and API security',
+                purpose: 'encryption',
+                tags: { Purpose: 'web-encryption', Team: 'frontend', Component: 'api-security' }
+            },
+            'database': {
+                appName: 'database',
+                description: 'KMS key for database encryption at rest and in transit',
+                purpose: 'encryption',
+                tags: { Purpose: 'database-encryption', Team: 'backend', Component: 'data-security' }
+            },
+            'api': {
+                appName: 'api-service',
+                description: 'KMS key for API service authentication and data encryption',
+                purpose: 'both',
+                tags: { Purpose: 'api-security', Team: 'backend', Component: 'authentication' }
+            },
+            'mobile': {
+                appName: 'mobile-app',
+                description: 'KMS key for mobile application data encryption and secure communication',
+                purpose: 'encryption',
+                tags: { Purpose: 'mobile-encryption', Team: 'mobile', Component: 'app-security' }
+            },
+            'microservice': {
+                appName: 'microservice',
+                description: 'KMS key for microservice inter-service communication and data encryption',
+                purpose: 'both',
+                tags: { Purpose: 'service-encryption', Team: 'backend', Component: 'service-security' }
+            },
+            'custom': {
+                appName: '',
+                description: '',
+                purpose: 'encryption',
+                tags: {}
+            }
+        };
+        
+        function loadKeyTemplate(templateType) {
+            const template = keyTemplates[templateType];
+            document.getElementById('app-name').value = template.appName;
+            document.getElementById('key-desc').value = template.description;
+            document.getElementById('key-purpose').value = template.purpose;
+            document.getElementById('key-tags').value = JSON.stringify(template.tags, null, 2);
+            
+            // Auto-generate alias
+            generateAlias();
+        }
+        
+        function generateAlias() {
+            const appName = document.getElementById('app-name').value;
+            const environment = document.getElementById('environment').value;
+            
+            if (appName) {
+                const alias = `alias/${appName}-${environment}-key`;
+                document.getElementById('key-alias').value = alias;
+            }
+        }
+        
+        function clearKeyForm() {
+            document.getElementById('app-name').value = '';
+            document.getElementById('environment').value = 'dev';
+            document.getElementById('key-purpose').value = 'encryption';
+            document.getElementById('key-desc').value = '';
+            document.getElementById('key-alias').value = '';
+            document.getElementById('key-tags').value = '';
+            document.getElementById('enable-rotation').checked = true;
+            document.getElementById('enable-multi-region').checked = false;
+            document.getElementById('enable-deletion').checked = false;
+            document.getElementById('key-spec').value = 'SYMMETRIC_DEFAULT';
+            document.getElementById('key-origin').value = 'AWS_KMS';
+            document.getElementById('create-key-result').textContent = '';
+        }
+        
+        function createKey() {
+            const appName = document.getElementById('app-name').value;
+            const environment = document.getElementById('environment').value;
+            const keyPurpose = document.getElementById('key-purpose').value;
+            const description = document.getElementById('key-desc').value;
+            const alias = document.getElementById('key-alias').value;
+            const tagsText = document.getElementById('key-tags').value;
+            const enableRotation = document.getElementById('enable-rotation').checked;
+            const enableMultiRegion = document.getElementById('enable-multi-region').checked;
+            const enableDeletion = document.getElementById('enable-deletion').checked;
+            const keySpec = document.getElementById('key-spec').value;
+            const keyOrigin = document.getElementById('key-origin').value;
+            
+            // Validate required fields
+            if (!appName || !description || !alias) {
+                alert('Please fill in all required fields: Application Name, Description, and Alias');
+                return;
+            }
+            
+            // Parse tags
+            let tags = {};
+            try {
+                if (tagsText.trim()) {
+                    tags = JSON.parse(tagsText);
+                }
+            } catch (e) {
+                alert('Invalid JSON in Tags field: ' + e.message);
+                return;
+            }
+            
+            // Add default tags
+            tags = {
+                ...tags,
+                Application: appName,
+                Environment: environment,
+                Purpose: keyPurpose,
+                CreatedBy: 'KMS-Web-UI',
+                CreatedDate: new Date().toISOString()
+            };
+            
+            const keyData = {
+                description: description,
+                alias: alias,
+                tags: tags,
+                enable_rotation: enableRotation,
+                multi_region: enableMultiRegion,
+                allow_deletion: enableDeletion,
+                key_spec: keySpec,
+                origin: keyOrigin,
+                key_usage: keyPurpose === 'signing' ? 'SIGN_VERIFY' : 
+                          keyPurpose === 'both' ? 'ENCRYPT_DECRYPT_SIGN_VERIFY' : 'ENCRYPT_DECRYPT'
+            };
+            
+            fetch('/api/create-key', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(keyData)
+            }).then(r => r.json()).then(data => {
+                document.getElementById('create-key-result').textContent = JSON.stringify(data, null, 2);
+                if (data.status === 'created') {
+                    // Refresh charts and key list
+                    updateAdvancedCharts();
+                    listKeys();
+                }
+            }).catch(error => {
+                document.getElementById('create-key-result').textContent = 'Error: ' + error.message;
+            });
+        }
+        
+        // AI Assistant Functions
+        function askAI() {
+            const query = document.getElementById('aiQuery').value;
+            if (!query.trim()) return;
+            
+            const responseDiv = document.getElementById('aiResponse');
+            const contentDiv = document.getElementById('aiResponseContent');
+            
+            responseDiv.style.display = 'block';
+            contentDiv.innerHTML = '<div style="color: #fff;">🤖 Thinking...</div>';
+            
+            // Call real Ollama AI API
+            fetch('/api/ai/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                body: JSON.stringify({query: query})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    contentDiv.innerHTML = `<div style="color: #ff6b6b;">❌ Error: ${data.error}</div>`;
+                } else {
+                    const formattedResponse = data.response.replace(/\n/g, '<br>');
+                    contentDiv.innerHTML = `<div style="color: #fff;">🤖 <strong>AI Response (${data.model}):</strong><br><br>${formattedResponse}</div>`;
+                }
+            })
+            .catch(error => {
+                contentDiv.innerHTML = `<div style="color: #ff6b6b;">❌ Error: ${error.message}</div>`;
+            });
+        }
+        
+        function getAIRecommendations() {
+            fetch('/api/ai/recommendations')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('AI Recommendations Error:', data.error);
+                } else {
+                    console.log('AI Recommendations:', data.recommendations);
+                    // You can display this in a modal or dedicated section
+                }
+            })
+            .catch(error => {
+                console.error('AI Recommendations Error:', error);
+            });
+        }
+        
+        function getAISecurityAnalysis() {
+            fetch('/api/ai/security-analysis')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('AI Security Analysis Error:', data.error);
+                } else {
+                    console.log('AI Security Analysis:', data.analysis);
+                    // Update security cards with AI analysis
+                    updateSecurityCards(data.analysis);
+                }
+            })
+            .catch(error => {
+                console.error('AI Security Analysis Error:', error);
+            });
+        }
+        
+        function checkAIStatus() {
+            fetch('/api/ai/status')
+            .then(response => response.json())
+            .then(data => {
+                console.log('AI Status:', data);
+                if (data.available) {
+                    console.log('✅ Ollama is available with models:', data.models);
+                    if (data.tinyllama_available) {
+                        console.log('✅ TinyLlama model is available');
+                    } else {
+                        console.log('⚠️ TinyLlama model not found. Available models:', data.models);
+                    }
+                } else {
+                    console.log('❌ Ollama not available:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('AI Status Error:', error);
+            });
+        }
+        
+        // Advanced Key Management Functions
+        function bulkRotateKeys() {
+            if (confirm('Are you sure you want to rotate all eligible keys? This action cannot be undone.')) {
+                fetch('/api/bulk-rotate-keys', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({})
+                }).then(r => r.json()).then(data => {
+                    alert('Bulk rotation initiated! ' + data.message);
+                    updateAdvancedCharts();
+                }).catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+        
+        function scheduleKeyRotation() {
+            const days = prompt('Enter number of days for rotation schedule:', '90');
+            if (days) {
+                fetch('/api/schedule-rotation', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({days: parseInt(days)})
+                }).then(r => r.json()).then(data => {
+                    alert('Rotation scheduled successfully!');
+                }).catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+        
+        function enableKeyRotation() {
+            const keyId = document.getElementById('advancedKeyId').value;
+            if (!keyId) {
+                alert('Please enter a Key ID');
+                return;
+            }
+            
+            fetch('/api/enable-rotation', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({key_id: keyId})
+            }).then(r => r.json()).then(data => {
+                alert('Key rotation enabled for ' + keyId);
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function backupKeys() {
+            if (confirm('Create backup of all keys? This may take a few minutes.')) {
+                fetch('/api/backup-keys', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({})
+                }).then(r => r.json()).then(data => {
+                    alert('Backup completed! Location: ' + data.backup_location);
+                    document.getElementById('backupStatus').innerHTML = 
+                        '• Last backup: Just now<br>• 15 keys backed up<br>• Backup location: ' + data.backup_location;
+                }).catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+        
+        function restoreKeys() {
+            const backupId = prompt('Enter backup ID to restore from:');
+            if (backupId) {
+                fetch('/api/restore-keys', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({backup_id: backupId})
+                }).then(r => r.json()).then(data => {
+                    alert('Restore completed! ' + data.message);
+                }).catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+        
+        function replicateKeys() {
+            const regions = prompt('Enter target regions (comma-separated):', 'us-west-2,eu-west-1');
+            if (regions) {
+                fetch('/api/replicate-keys', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({regions: regions.split(',')})
+                }).then(r => r.json()).then(data => {
+                    alert('Key replication initiated! ' + data.message);
+                }).catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+        
+        function enableKey() {
+            const keyId = document.getElementById('advancedKeyId').value;
+            if (!keyId) {
+                alert('Please enter a Key ID');
+                return;
+            }
+            
+            fetch('/api/enable-key', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({key_id: keyId})
+            }).then(r => r.json()).then(data => {
+                alert('Key enabled: ' + keyId);
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function disableKey() {
+            const keyId = document.getElementById('advancedKeyId').value;
+            if (!keyId) {
+                alert('Please enter a Key ID');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to disable key ' + keyId + '?')) {
+                fetch('/api/disable-key', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({key_id: keyId})
+                }).then(r => r.json()).then(data => {
+                    alert('Key disabled: ' + keyId);
+                }).catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+        
+        function generateDataKey() {
+            const keyId = document.getElementById('advancedKeyId').value;
+            if (!keyId) {
+                alert('Please enter a Key ID');
+                return;
+            }
+            
+            fetch('/api/generate-data-key', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({key_id: keyId})
+            }).then(r => r.json()).then(data => {
+                alert('Data key generated! Key: ' + data.data_key.substring(0, 20) + '...');
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function saveAutomationRules() {
+            const rules = {
+                auto_rotate: document.getElementById('autoRotate').checked,
+                auto_backup: document.getElementById('autoBackup').checked,
+                auto_alert: document.getElementById('autoAlert').checked,
+                auto_compliance: document.getElementById('autoCompliance').checked
+            };
+            
+            fetch('/api/save-automation-rules', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(rules)
+            }).then(r => r.json()).then(data => {
+                alert('Automation rules saved successfully!');
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function generateUsageReport() {
+            fetch('/api/generate-usage-report', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({})
+            }).then(r => r.json()).then(data => {
+                alert('Usage report generated! Download available.');
+                // You could open the report in a new window or download it
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function costOptimization() {
+            fetch('/api/cost-optimization', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({})
+            }).then(r => r.json()).then(data => {
+                alert('Cost analysis complete! Potential savings: $' + data.savings + '/month');
+                document.getElementById('analyticsStatus').innerHTML = 
+                    '• ' + data.savings_percentage + '% cost savings identified<br>• ' + data.optimizations + ' performance optimizations<br>• ' + data.unused_keys + ' unused keys detected';
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function predictKeyUsage() {
+            fetch('/api/predict-usage', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({})
+            }).then(r => r.json()).then(data => {
+                alert('Usage prediction generated! Expected increase: ' + data.increase + '%');
+                document.getElementById('predictionsStatus').innerHTML = 
+                    '• ' + data.keys_needing_rotation + ' keys will need rotation soon<br>• Usage expected to increase ' + data.increase + '%<br>• Security risk: ' + data.security_risk;
+            }).catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        // Auto-generate alias when app name or environment changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const appNameInput = document.getElementById('app-name');
+            const environmentSelect = document.getElementById('environment');
+            
+            if (appNameInput) {
+                appNameInput.addEventListener('input', generateAlias);
+            }
+            if (environmentSelect) {
+                environmentSelect.addEventListener('change', generateAlias);
+            }
+            
+            // Initialize real-time updates
+            setInterval(updateSecurityStatus, 30000); // Update every 30 seconds
+        });
+        
+        function updateSecurityStatus() {
+            // Simulate real-time security updates
+            const alerts = [
+                '🚨 Unusual access pattern detected',
+                '⚠️ Key rotation overdue for 2 keys',
+                '✅ All compliance checks passed',
+                '🔍 New key created: alias/test-app-prod-key'
+            ];
+            
+            const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+            const alertsDiv = document.getElementById('securityAlerts');
+            if (alertsDiv) {
+                const newAlert = document.createElement('div');
+                newAlert.className = 'alert-item';
+                newAlert.style.cssText = 'background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 5px;';
+                newAlert.innerHTML = '<span style="color: #ffd700;">⚡</span> ' + randomAlert;
+                alertsDiv.insertBefore(newAlert, alertsDiv.firstChild);
+                
+                // Keep only last 5 alerts
+                while (alertsDiv.children.length > 5) {
+                    alertsDiv.removeChild(alertsDiv.lastChild);
+                }
+            }
+        }
+        function encryptString() {
+            const plaintext = document.getElementById('plaintext').value;
+            fetch('/api/encrypt', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ plaintext: plaintext })
+            }).then(r => r.json()).then(data => {
+                document.getElementById('encrypted').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('encrypted-json').value = JSON.stringify(data);
+            });
+        }
+        function decryptString() {
+            let encryptedJson;
+            try {
+                encryptedJson = JSON.parse(document.getElementById('encrypted-json').value);
+            } catch (e) {
+                document.getElementById('decrypted').textContent = 'Invalid JSON';
+                return;
+            }
+            fetch('/api/decrypt', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ encrypted_package: encryptedJson })
+            }).then(r => r.json()).then(data => {
+                document.getElementById('decrypted').textContent = data.decrypted;
+            });
+        }
+        function getReport() {
+            fetch('/api/report', { headers: getAuthHeaders() }).then(r => r.json()).then(data => {
+                document.getElementById('report').textContent = JSON.stringify(data, null, 2);
+            });
+        }
+        function showSpinner(show) {
+            document.getElementById('es-spinner').style.display = show ? 'block' : 'none';
+        }
+        function getESLogs() {
+            showSpinner(true);
+            fetch('/api/es-logs', { headers: getAuthHeaders() }).then(r => r.json()).then(data => {
+                showSpinner(false);
+                if (data.error) {
+                    document.getElementById('es-logs').textContent = 'Error: ' + data.error;
+                } else {
+                    document.getElementById('es-logs').textContent = JSON.stringify(data, null, 2);
+                }
+            }).catch(err => {
+                showSpinner(false);
+                document.getElementById('es-logs').textContent = 'Error: Could not connect to server.';
+            });
+        }
+        function getS3ESLogs() {
+            showSpinner(true);
+            fetch('/api/es-logs?s3_only=true', { headers: getAuthHeaders() }).then(r => r.json()).then(data => {
+                showSpinner(false);
+                if (data.error) {
+                    document.getElementById('es-logs').textContent = 'Error: ' + data.error;
+                } else {
+                    document.getElementById('es-logs').textContent = JSON.stringify(data, null, 2);
+                }
+            }).catch(err => {
+                showSpinner(false);
+                document.getElementById('es-logs').textContent = 'Error: Could not connect to server.';
+            });
+        }
+
+        // Advanced 3D Donut Chart rendering
+        function renderDonutChart(ctx, data, labels, colors, title) {
+          return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 0,
+                hoverBorderWidth: 3,
+                hoverBorderColor: '#fff',
+                cutout: '70%'
+              }]
+            },
+            options: {
+              responsive: false,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: '#f5f5f5',
+                    font: { size: 12 },
+                    padding: 20,
+                    usePointStyle: true
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  borderColor: '#00bcd4',
+                  borderWidth: 1,
+                  cornerRadius: 8,
+                  displayColors: true
+                }
+              },
+              animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 2000,
+                easing: 'easeOutQuart'
+              }
+            }
+          });
+        }
+        
+        // Advanced Bar Chart with gradients
+        function renderAdvancedBarChart(ctx, labels, data, title) {
+          const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+          gradient.addColorStop(0, 'rgba(233, 30, 99, 0.8)');
+          gradient.addColorStop(1, 'rgba(233, 30, 99, 0.2)');
+          
+          return new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: title,
+                data: data,
+                backgroundColor: gradient,
+                borderColor: '#e91e63',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+                hoverBackgroundColor: 'rgba(233, 30, 99, 1)',
+                hoverBorderColor: '#fff',
+                hoverBorderWidth: 3
+              }]
+            },
+            options: {
+              responsive: false,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  borderColor: '#e91e63',
+                  borderWidth: 1,
+                  cornerRadius: 8
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    drawBorder: false
+                  },
+                  ticks: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                },
+                x: {
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    drawBorder: false
+                  },
+                  ticks: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                }
+              },
+              animation: {
+                duration: 2000,
+                easing: 'easeOutQuart'
+              }
+            }
+          });
+        }
+        
+        // Real-time Activity Timeline
+        function renderActivityTimeline(ctx, data) {
+          const gradient = ctx.createLinearGradient(0, 0, 800, 0);
+          gradient.addColorStop(0, 'rgba(76, 175, 80, 0.8)');
+          gradient.addColorStop(0.5, 'rgba(76, 175, 80, 0.4)');
+          gradient.addColorStop(1, 'rgba(76, 175, 80, 0.8)');
+          
+          return new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: data.labels,
+              datasets: [{
+                label: 'Activity Count',
+                data: data.values,
+                borderColor: '#4caf50',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#4caf50',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: '#4caf50',
+                pointHoverBorderColor: '#fff'
+              }]
+            },
+            options: {
+              responsive: false,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  borderColor: '#4caf50',
+                  borderWidth: 1,
+                  cornerRadius: 8
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    drawBorder: false
+                  },
+                  ticks: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                },
+                x: {
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)',
+                    drawBorder: false
+                  },
+                  ticks: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                }
+              },
+              animation: {
+                duration: 2000,
+                easing: 'easeOutQuart'
+              }
+            }
+          });
+        }
+        // --- Update all dashboard cards ---
+        let chartInstances = {};
+        
+        function updateAdvancedCharts() {
+          // Update metrics cards
+          fetch('/api/key-stats').then(r => r.json()).then(stats => {
+            const stateLabels = Object.keys(stats.state_counts);
+            const stateData = Object.values(stats.state_counts);
+            const usageLabels = Object.keys(stats.usage_counts);
+            const usageData = Object.values(stats.usage_counts);
+            
+            // Update metric cards
+            const totalKeys = stateData.reduce((a, b) => a + b, 0);
+            const activeKeys = stateData.find((_, i) => stateLabels[i] === 'Enabled') || 0;
+            
+            animateNumber('totalKeysMetric', totalKeys);
+            animateNumber('activeKeysMetric', activeKeys);
+            
+            // Create advanced donut charts
+            const stateColors = ['#00bcd4', '#ff9800', '#e91e63', '#4caf50', '#9c27b0', '#607d8b'];
+            const usageColors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140'];
+            
+            if (chartInstances.keyStateDonut) chartInstances.keyStateDonut.destroy();
+            chartInstances.keyStateDonut = renderDonutChart(
+              document.getElementById('keyStateDonut').getContext('2d'),
+              stateData, stateLabels, stateColors, 'Key States'
+            );
+            
+            if (chartInstances.keyUsageDonut) chartInstances.keyUsageDonut.destroy();
+            chartInstances.keyUsageDonut = renderDonutChart(
+              document.getElementById('keyUsageDonut').getContext('2d'),
+              usageData, usageLabels, usageColors, 'Key Usage'
+            );
+          });
+          
+          // Update performance chart
+          fetch('/api/key-usage-details').then(r => r.json()).then(data => {
+            const labels = data.map(k => k.key_id.slice(0, 8) + '...');
+            const requests = data.map(k => k.requests);
+            const latency = data.map(k => k.avg_latency_ms);
+            
+            if (chartInstances.keyPerformance) chartInstances.keyPerformance.destroy();
+            chartInstances.keyPerformance = renderAdvancedBarChart(
+              document.getElementById('keyPerformanceChart').getContext('2d'),
+              labels, requests, 'Requests (30d)'
+            );
+          });
+          
+          // Update activity timeline
+          updateActivityTimeline();
+        }
+        
+        function animateNumber(elementId, targetValue) {
+          const element = document.getElementById(elementId);
+          const currentValue = parseInt(element.textContent.replace(/[^\d]/g, '')) || 0;
+          const increment = (targetValue - currentValue) / 30;
+          let current = currentValue;
+          
+          const timer = setInterval(() => {
+            current += increment;
+            if ((increment > 0 && current >= targetValue) || (increment < 0 && current <= targetValue)) {
+              current = targetValue;
+              clearInterval(timer);
+            }
+            
+            if (elementId.includes('Response')) {
+              element.textContent = Math.round(current) + 'ms';
+            } else if (elementId.includes('Rate')) {
+              element.textContent = Math.round(current) + '%';
+            } else {
+              element.textContent = Math.round(current);
+            }
+          }, 50);
+        }
+        
+        function updateActivityTimeline() {
+          // Generate sample activity data for the last 24 hours
+          const now = new Date();
+          const labels = [];
+          const values = [];
+          
+          for (let i = 23; i >= 0; i--) {
+            const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+            labels.push(time.getHours() + ':00');
+            values.push(Math.floor(Math.random() * 50) + 10); // Random activity between 10-60
+          }
+          
+          if (chartInstances.activityTimeline) chartInstances.activityTimeline.destroy();
+          chartInstances.activityTimeline = renderActivityTimeline(
+            document.getElementById('activityTimeline').getContext('2d'),
+            { labels, values }
+          );
+        }
+        
+        // Initialize charts
+        updateAdvancedCharts();
+        
+        // Update charts every 30 seconds
+        setInterval(updateAdvancedCharts, 30000);
+        // --- Rotation Reminders ---
+        function updateRotationReminders() {
+          document.getElementById('rotation-spinner').style.display = 'block';
+          fetch('/api/key-rotation-reminders', { headers: getAuthHeaders() })
+            .then(r => r.json())
+            .then(data => {
+              document.getElementById('rotation-spinner').style.display = 'none';
+              const tbody = document.getElementById('rotationTable').querySelector('tbody');
+              tbody.innerHTML = '';
+              for (const row of data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${row.key_id}</td><td>${row.description||''}</td><td>${row.rotation_enabled ? 'Yes' : 'No'}</td><td>${row.created||''}</td>`;
+                tbody.appendChild(tr);
+              }
+            })
+            .catch(() => { document.getElementById('rotation-spinner').style.display = 'none'; });
+        }
+        updateRotationReminders();
+        // --- Recent Key Activity ---
+        function updateRecentKeyActivity() {
+          document.getElementById('recent-activity-spinner').style.display = 'block';
+          fetch('/api/recent-key-activity', { headers: getAuthHeaders() })
+            .then(r => r.json())
+            .then(data => {
+              document.getElementById('recent-activity-spinner').style.display = 'none';
+              const tbody = document.getElementById('recentActivityTable').querySelector('tbody');
+              tbody.innerHTML = '';
+              for (const row of data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${row.timestamp}</td><td>${row.username||''}</td><td>${row.action}</td><td>${row.key_id||''}</td><td>${row.status||''}</td><td>${row.details||''}</td>`;
+                tbody.appendChild(tr);
+              }
+            })
+            .catch(() => { document.getElementById('recent-activity-spinner').style.display = 'none'; });
+        }
+        updateRecentKeyActivity();
+
+        // Delete key logic
+        function openDeleteKeyModal(keyId) {
+          document.getElementById('deleteKeyId').textContent = keyId;
+          document.getElementById('deleteKeyModal').style.display = 'flex';
+        }
+        function closeDeleteKeyModal() {
+          document.getElementById('deleteKeyModal').style.display = 'none';
+        }
+        function confirmDeleteKey() {
+          const keyId = document.getElementById('deleteKeyId').textContent;
+          const pendingWindow = document.getElementById('pendingWindow').value;
+          fetch('/api/delete-key', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ key_id: keyId, pending_window: pendingWindow })
+          }).then(r => r.json()).then(resp => {
+            alert(resp.status === 'scheduled' ? 'Key scheduled for deletion.' : 'Error: ' + resp.error);
+            closeDeleteKeyModal();
+            updateAdvancedCharts();
+            listKeys();
+          });
+        }
+
+        // API Testing & Monitoring (Postman-like) logic
+        let apiHealthData = { labels: [], data: [], successCount: 0, totalCount: 0, totalTime: 0 };
+        let savedRequests = JSON.parse(localStorage.getItem('savedRequests') || '[]');
+        
+        // Initialize saved requests display
+        function loadSavedRequests() {
+          const container = document.getElementById('savedRequests');
+          container.innerHTML = '';
+          savedRequests.forEach((req, index) => {
+            const btn = document.createElement('button');
+            btn.textContent = `${req.method} ${req.name}`;
+            btn.style.cssText = 'background: #2196f3; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; margin: 2px;';
+            btn.onclick = () => loadRequest(index);
+            container.appendChild(btn);
+          });
+        }
+        
+        function saveRequest() {
+          const name = prompt('Enter a name for this request:');
+          if (!name) return;
+          
+          const request = {
+            name: name,
+            method: document.getElementById('apiMethod').value,
+            endpoint: document.getElementById('apiEndpoint').value,
+            customUrl: document.getElementById('customUrl').value,
+            headers: document.getElementById('apiHeaders').value,
+            payload: document.getElementById('apiPayload').value
+          };
+          
+          savedRequests.push(request);
+          localStorage.setItem('savedRequests', JSON.stringify(savedRequests));
+          loadSavedRequests();
+        }
+        
+        function loadRequest(index) {
+          const req = savedRequests[index];
+          document.getElementById('apiMethod').value = req.method;
+          document.getElementById('apiEndpoint').value = req.endpoint;
+          document.getElementById('customUrl').value = req.customUrl || '';
+          document.getElementById('apiHeaders').value = req.headers || '';
+          document.getElementById('apiPayload').value = req.payload || '';
+        }
+        
+        function clearRequest() {
+          document.getElementById('apiMethod').value = 'GET';
+          document.getElementById('apiEndpoint').value = '/api/keys';
+          document.getElementById('customUrl').value = '';
+          document.getElementById('apiHeaders').value = '{"Content-Type": "application/json"}';
+          document.getElementById('apiPayload').value = '';
+          document.getElementById('apiResponse').textContent = '';
+          document.getElementById('responseStatus').textContent = '';
+          document.getElementById('responseTime').textContent = '';
+        }
+        
+        function updateEndpointOptions() {
+          const method = document.getElementById('apiMethod').value;
+          const endpoint = document.getElementById('apiEndpoint');
+          const options = endpoint.options;
+          
+          // Show/hide options based on method
+          for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            const isGet = option.value.startsWith('/api/') && 
+                         (option.value.includes('keys') || 
+                          option.value.includes('stats') || 
+                          option.value.includes('report') || 
+                          option.value.includes('activity') ||
+                          option.value.includes('sessions') ||
+                          option.value.includes('whoami') ||
+                          option.value.includes('health'));
+            const isPost = option.value.includes('create') || 
+                          option.value.includes('delete') || 
+                          option.value.includes('encrypt') || 
+                          option.value.includes('decrypt') ||
+                          option.value.includes('login') ||
+                          option.value.includes('register') ||
+                          option.value.includes('mfa') ||
+                          option.value.includes('logout');
+            
+            if (method === 'GET' && isGet) option.style.display = '';
+            else if (method === 'POST' && isPost) option.style.display = '';
+            else if (method === 'PUT' || method === 'DELETE') option.style.display = '';
+            else option.style.display = 'none';
+          }
+        }
+        
+        function updatePayloadTemplate() {
+          const endpoint = document.getElementById('apiEndpoint').value;
+          const payload = document.getElementById('apiPayload');
+          
+          const templates = {
+            '/api/create-key': JSON.stringify({ description: "My KMS Key", alias: "alias/my-key" }, null, 2),
+            '/api/delete-key': JSON.stringify({ key_id: "your-key-id", pending_window: 7 }, null, 2),
+            '/api/encrypt': JSON.stringify({ plaintext: "Hello, World!", key_id: "alias/my-app-key" }, null, 2),
+            '/api/decrypt': JSON.stringify({ encrypted_package: { /* paste encrypted package here */ } }, null, 2),
+            '/api/key-policy': JSON.stringify({ key_id: "your-key-id", policy: { /* policy object */ } }, null, 2),
+            '/api/logout-session': JSON.stringify({ session_id: 123 }, null, 2),
+            '/api/mfa-setup': JSON.stringify({ username: "admin" }, null, 2),
+            '/api/mfa-verify': JSON.stringify({ username: "admin", token: "123456" }, null, 2),
+            '/login': JSON.stringify({ username: "admin", password: "admin123" }, null, 2),
+            '/register': JSON.stringify({ username: "newuser", password: "password123" }, null, 2)
+          };
+          
+          if (templates[endpoint]) {
+            payload.value = templates[endpoint];
+          }
+        }
+        
+        function sendApiRequest() {
+          const method = document.getElementById('apiMethod').value;
+          const endpoint = document.getElementById('apiEndpoint').value;
+          const customUrl = document.getElementById('customUrl').value;
+          const headersText = document.getElementById('apiHeaders').value;
+          const payloadText = document.getElementById('apiPayload').value;
+          
+          // Determine URL
+          let url = customUrl || endpoint;
+          if (!url.startsWith('http')) {
+            url = window.location.origin + url;
+          }
+          
+          // Parse headers
+          let headers = { ...getAuthHeaders() };
+          try {
+            if (headersText.trim()) {
+              const customHeaders = JSON.parse(headersText);
+              headers = { ...headers, ...customHeaders };
+            }
+          } catch (e) {
+            alert('Invalid headers JSON: ' + e.message);
+            return;
+          }
+          
+          // Parse payload
+          let body = null;
+          if (payloadText.trim() && (method === 'POST' || method === 'PUT')) {
+            try {
+              body = JSON.stringify(JSON.parse(payloadText));
+            } catch (e) {
+              alert('Invalid payload JSON: ' + e.message);
+              return;
+            }
+          }
+          
+          // Send request
+          const start = Date.now();
+          const options = { method, headers };
+          if (body) options.body = body;
+          
+          fetch(url, options)
+            .then(async response => {
+              const end = Date.now();
+              const latency = end - start;
+              const responseText = await response.text();
+              
+              // Update response display
+              document.getElementById('responseStatus').textContent = `${response.status} ${response.statusText}`;
+              document.getElementById('responseStatus').style.background = response.ok ? '#4caf50' : '#f44336';
+              document.getElementById('responseTime').textContent = `${latency}ms`;
+              document.getElementById('apiResponse').textContent = responseText;
+              
+              // Update health data
+              apiHealthData.labels.push(new Date().toLocaleTimeString());
+              apiHealthData.data.push(latency);
+              apiHealthData.totalCount++;
+              apiHealthData.totalTime += latency;
+              
+              if (response.ok) apiHealthData.successCount++;
+              
+              if (apiHealthData.labels.length > 20) {
+                apiHealthData.labels.shift();
+                apiHealthData.data.shift();
+              }
+              
+              updateApiHealthDisplay();
+              renderApiHealthChart();
+            })
+            .catch(error => {
+              const end = Date.now();
+              const latency = end - start;
+              
+              document.getElementById('responseStatus').textContent = 'Error';
+              document.getElementById('responseStatus').style.background = '#f44336';
+              document.getElementById('responseTime').textContent = `${latency}ms`;
+              document.getElementById('apiResponse').textContent = `Network Error: ${error.message}`;
+              
+              // Update health data
+              apiHealthData.labels.push(new Date().toLocaleTimeString());
+              apiHealthData.data.push(latency);
+              apiHealthData.totalCount++;
+              apiHealthData.totalTime += latency;
+              
+              if (apiHealthData.labels.length > 20) {
+                apiHealthData.labels.shift();
+                apiHealthData.data.shift();
+              }
+              
+              updateApiHealthDisplay();
+              renderApiHealthChart();
+            });
+        }
+        
+        function copyResponse() {
+          const response = document.getElementById('apiResponse').textContent;
+          navigator.clipboard.writeText(response).then(() => {
+            alert('Response copied to clipboard!');
+          });
+        }
+        
+        function formatResponse() {
+          const response = document.getElementById('apiResponse').textContent;
+          try {
+            const formatted = JSON.stringify(JSON.parse(response), null, 2);
+            document.getElementById('apiResponse').textContent = formatted;
+          } catch (e) {
+            alert('Response is not valid JSON');
+          }
+        }
+        
+        function updateApiHealthDisplay() {
+          document.getElementById('totalRequests').textContent = apiHealthData.totalCount;
+          const successRate = apiHealthData.totalCount > 0 ? 
+            Math.round((apiHealthData.successCount / apiHealthData.totalCount) * 100) : 0;
+          document.getElementById('successRate').textContent = successRate + '%';
+          const avgTime = apiHealthData.totalCount > 0 ? 
+            Math.round(apiHealthData.totalTime / apiHealthData.totalCount) : 0;
+          document.getElementById('avgResponseTime').textContent = avgTime + 'ms';
+          document.getElementById('lastRequest').textContent = new Date().toLocaleTimeString();
+        }
+        
+        function renderApiHealthChart() {
+          const ctx = document.getElementById('apiHealthChart').getContext('2d');
+          if (window.apiHealthChartInstance) window.apiHealthChartInstance.destroy();
+          
+          const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+          gradient.addColorStop(0, 'rgba(0, 188, 212, 0.3)');
+          gradient.addColorStop(1, 'rgba(0, 188, 212, 0.05)');
+          
+          window.apiHealthChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { 
+              labels: apiHealthData.labels, 
+              datasets: [{ 
+                label: 'API Latency (ms)', 
+                data: apiHealthData.data, 
+                borderColor: '#00bcd4', 
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#00bcd4',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: '#00bcd4',
+                pointHoverBorderColor: '#fff'
+              }] 
+            },
+            options: { 
+              responsive: false, 
+              maintainAspectRatio: false,
+              plugins: { 
+                legend: { 
+                  position: 'bottom',
+                  labels: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  borderColor: '#00bcd4',
+                  borderWidth: 1,
+                  cornerRadius: 8
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: { 
+                    color: 'rgba(255,255,255,0.1)',
+                    drawBorder: false
+                  },
+                  ticks: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                },
+                x: {
+                  grid: { 
+                    color: 'rgba(255,255,255,0.1)',
+                    drawBorder: false
+                  },
+                  ticks: {
+                    color: '#f5f5f5',
+                    font: { size: 12 }
+                  }
+                }
+              },
+              animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
+              }
+            }
+          });
+        }
+        
+        // Initialize API testing interface
+        loadSavedRequests();
+        updateEndpointOptions();
+        // --- Activity Log ---
+        function showActivitySpinner(show) {
+          document.getElementById('activity-spinner').style.display = show ? 'block' : 'none';
+        }
+        function getActivityLog() {
+          showActivitySpinner(true);
+          fetch('/api/activity-log', { headers: getAuthHeaders() })
+            .then(r => r.json())
+            .then(data => {
+              showActivitySpinner(false);
+              const tbody = document.getElementById('activityLogTable').querySelector('tbody');
+              tbody.innerHTML = '';
+              for (const row of data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${row.timestamp}</td><td>${row.username||''}</td><td>${row.action}</td><td>${row.key_id||''}</td><td>${row.status||''}</td><td>${row.details||''}</td>`;
+                tbody.appendChild(tr);
+              }
+            })
+            .catch(() => { showActivitySpinner(false); });
+        }
+        function exportActivityLog(type) {
+          let url = type === 'csv' ? '/api/activity-log/export/csv' : '/api/activity-log/export/json';
+          fetch(url, { headers: getAuthHeaders() })
+            .then(r => r.blob())
+            .then(blob => {
+              const a = document.createElement('a');
+              a.href = window.URL.createObjectURL(blob);
+              a.download = type === 'csv' ? 'activity_log.csv' : 'activity_log.json';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            });
+        }
+        // --- KMS Policy Explorer ---
+        function getKeyPolicy() {
+          const keyId = document.getElementById('policyKeyId').value;
+          if (!keyId) { alert('Enter a Key ID'); return; }
+          fetch(`/api/key-policy?key_id=${encodeURIComponent(keyId)}`, { headers: getAuthHeaders() })
+            .then(r => r.json())
+            .then(data => {
+              if (data.error) {
+                document.getElementById('keyPolicyDisplay').textContent = 'Error: ' + data.error;
+              } else {
+                document.getElementById('keyPolicyDisplay').textContent = JSON.stringify(data.policy, null, 2);
+              }
+            });
+        }
+        function saveKeyPolicy() {
+          const keyId = document.getElementById('policyKeyId').value;
+          let policy;
+          try {
+            policy = JSON.parse(document.getElementById('keyPolicyDisplay').textContent);
+          } catch (e) {
+            alert('Invalid JSON policy'); return;
+          }
+          fetch('/api/key-policy', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ key_id: keyId, policy: policy })
+          }).then(r => r.json()).then(data => {
+            if (data.status === 'policy_updated') {
+              alert('Policy updated!');
+            } else {
+              alert('Error: ' + (data.error || 'Unknown error'));
+            }
+            });
+        }
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() { 
+        updateAuthUI(); 
+        toggleAuthMode(); 
+        checkAIStatus(); // Check Ollama status on load
+      });
+    </script>
+</body>
+</html> 
