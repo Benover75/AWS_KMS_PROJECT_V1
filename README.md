@@ -1,10 +1,14 @@
 # 🔐 AWS KMS Platform - Enterprise Key Management Solution
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com)
-[![AWS KMS](https://img.shields.io/badge/AWS-KMS-orange.svg)](https://aws.amazon.com/kms/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI/CD](https://img.shields.io/badge/CI/CD-GitHub%20Actions-blue.svg)](.github/workflows/ci.yml)
+# AWS_KMS_PROJECT_V1
+
+![License](https://img.shields.io/github/license/Benover75/AWS_KMS_PROJECT_V1)
+![Dockerized](https://img.shields.io/badge/containerized-Docker-blue?logo=docker)
+![IaC](https://img.shields.io/badge/IaC-Terraform-5932EA?logo=terraform)
+![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python)
+![Pre-Commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)
+![Open Source](https://img.shields.io/badge/open--source-yes-brightgreen)
+
 
 > **Enterprise-grade AWS Key Management Service (KMS) platform with AI-powered insights, real-time monitoring, and comprehensive security features.**
 
